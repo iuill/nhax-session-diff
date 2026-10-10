@@ -1,0 +1,9 @@
+local-data/
+*.nhax
+*.enhax
+__pycache__/
+.venv/
+*.egg-info/
+/dist/
+/nhax-diff
+/nhax-diff.exe

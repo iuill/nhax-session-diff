@@ -1,0 +1,34 @@
+{
+  "name": "nhax-session-diff",
+  "build": { "dockerfile": "Dockerfile" },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "GH_CONFIG_DIR": "/home/vscode/.config/gh",
+    "LANG": "C.UTF-8",
+    "TZ": "Asia/Tokyo"
+  },
+  "remoteEnv": {
+    "PATH": "${localEnv:HOME}/.codex/packages/standalone/current/bin:${containerEnv:PATH}"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.codex/packages/standalone,target=${localEnv:HOME}/.codex/packages/standalone,type=bind,readonly",
+    "source=${localEnv:HOME}/.codex/auth.json,target=/home/vscode/.codex/auth.json,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind"
+  ],
+  "initializeCommand": ["bash", ".devcontainer/scripts/check-host-tools.sh"],
+  "postCreateCommand": "bash .devcontainer/scripts/setup-container.sh",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": { "label": "NHAX web development", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.Go", "openai.chatgpt", "ms-python.python", "mhutchie.git-graph"],
+      "settings": { "terminal.integrated.defaultProfile.linux": "bash" }
+    }
+  }
+}
