@@ -141,3 +141,52 @@ test('selects file, user and date independently and swaps the complete selection
   await page.locator('#swap').click();
   await expect(page.locator('#after-file')).toHaveValue(otherFile);
 });
+
+test('summarizes byte and numeric arrays while preserving every changed position in JSON', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#file-input')).toBeEnabled();
+  await page.locator('#file-input').setInputFiles({
+    name: 'arrays.nhax', mimeType: 'application/octet-stream',
+    buffer: execFileSync('python3', ['tests/browser/synthetic.py', '0', '--arrays']),
+  });
+  await page.locator('#compare').click();
+  await expect(page.locator('#diff-body tr')).toHaveCount(6);
+  await expect(page.locator('#visible-count')).toContainText('配列を集約 · XML要素の差分16件');
+  const byteRow = page.locator('#diff-body tr').filter({ hasText: 'synthetic_bytes' }).first();
+  await expect(byteRow).toContainText('byte配列 · 4位置');
+  await byteRow.locator('.array-difference summary').click();
+  await expect(byteRow.locator('.array-elements')).toContainText('[4] — → 99 追加');
+  await expect(byteRow.locator('.array-elements')).not.toContainText('[2]');
+  await page.locator('#search').fill('99');
+  await expect(page.locator('#diff-body tr')).toHaveCount(2);
+  await page.locator('#search').clear();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#download').click();
+  const downloaded = await downloadPromise;
+  const report = JSON.parse(require('node:fs').readFileSync(await downloaded.path(), 'utf8'));
+  expect(report.comparisons[0].differences).toHaveLength(8);
+  expect(report.comparisons[0].differences.find(d => d.path.endsWith('/byte[4]/#text'))).toMatchObject({ change: 'added', after: '99' });
+  await page.locator('#swap').click();
+  await page.locator('#compare').click();
+  const reversed = page.locator('#diff-body tr').filter({ hasText: 'synthetic_bytes' }).first();
+  await reversed.locator('.array-difference summary').click();
+  await expect(reversed.locator('.array-elements')).toContainText('[4] 99 → — 削除');
+});
+
+test('expands large arrays in batches instead of rendering every element immediately', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#file-input')).toBeEnabled();
+  await page.locator('#file-input').setInputFiles({
+    name: 'large-array.nhax', mimeType: 'application/octet-stream',
+    buffer: execFileSync('python3', ['tests/browser/synthetic.py', '0', '--arrays', '--long-array']),
+  });
+  await page.locator('#compare').click();
+  const row = page.locator('#diff-body tr').filter({ hasText: 'synthetic_bytes' }).first();
+  await expect(row).toContainText('205位置');
+  await expect(row.locator('.array-element')).toHaveCount(0);
+  await row.locator('.array-difference summary').click();
+  await expect(row.locator('.array-element')).toHaveCount(200);
+  await row.getByRole('button', { name: '次の200位置を表示' }).click();
+  await expect(row.locator('.array-element')).toHaveCount(205);
+  await expect(row.getByRole('button')).toBeHidden();
+});

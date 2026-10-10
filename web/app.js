@@ -1,3 +1,5 @@
+import { groupDifferences } from './differences.js';
+
 const $ = id => document.getElementById(id);
 const files = [];
 let groups = [], report = null, rows = [], side = 'all', sequence = 0, busy = false, engineReady = false;
@@ -230,7 +232,7 @@ async function compare() {
       after: { file: after.file.name, sha256: after.file.sha256, patient_index: after.patient.index, session_index: after.sessionIndex, action_group: after.time },
       comparisons, unpaired: skipped
     };
-    rows = comparisons.flatMap(c => c.differences.map(d => ({ ...d, side: c.side, metadata: metadata(d.path) })));
+    rows = groupDifferences(comparisons.flatMap(c => c.differences.map(d => ({ ...d, side: c.side, metadata: metadata(d.path) }))));
     $('result-context').textContent = `${before.label} → ${after.label}`;
     $('coverage').textContent = `${comparisons.length}組のアクションを比較。${skipped.length ? ' 未比較: ' + [...new Set(skipped)].join(' ') : ' 選択した履歴の全アクションを比較しました。'}`;
     $('stats').replaceChildren();
@@ -246,17 +248,38 @@ async function compare() {
 
 function renderRows() {
   const query = $('search').value.trim().toLowerCase();
-  const visible = rows.filter(row => ($('metadata').checked || !row.metadata) && (side === 'all' || row.side === side) && (!query || `${row.path} ${row.before ?? ''} ${row.after ?? ''}`.toLowerCase().includes(query)));
+  const visible = rows.filter(row => ($('metadata').checked || !row.metadata) && (side === 'all' || row.side === side) && (!query || (row.elements || [row]).some(e => `${e.path} ${e.before ?? ''} ${e.after ?? ''}`.toLowerCase().includes(query))));
   $('diff-body').replaceChildren();
   for (const row of visible) {
     const tr = node('tr');
     const sideCell = node('td'); sideCell.append(node('span', sideLabel(row.side), 'side-badge' + (row.side === 'Right' ? ' right' : '')));
     const field = node('td'); field.append(node('div', prettyPath(row.path), 'field-title'));
+    if (row.elements) {
+      const detail = node('details', undefined, 'array-difference');
+      detail.append(node('summary', `${row.arrayType}配列 · ${row.elements.length}位置の差分を表示`));
+      detail.append(node('p', '位置は0始まり。変更された要素のみ表示します。'));
+      const changes = node('div', undefined, 'array-elements');
+      const more = node('button', '次の200位置を表示', 'text-button'); more.hidden = true;
+      let shown = 0;
+      const appendChunk = () => {
+        for (const element of row.elements.slice(shown, shown + 200)) {
+          const entry = node('span', undefined, 'array-element');
+          entry.append(node('strong', `[${element.position}] `), node('span', element.before ?? '—', 'old-value'), document.createTextNode(' → '), node('span', element.after ?? '—', 'new-value'), node('small', { added: ' 追加', removed: ' 削除', changed: '' }[element.change]));
+          changes.append(entry);
+        }
+        shown = Math.min(shown + 200, row.elements.length);
+        more.hidden = shown === row.elements.length;
+      };
+      detail.addEventListener('toggle', () => { if (detail.open && !shown) appendChunk(); });
+      more.addEventListener('click', appendChunk);
+      detail.append(changes, more); field.append(detail);
+    }
     const path = node('details', undefined, 'field-path'); path.append(node('summary', 'XMLパスを表示'), node('div', row.path)); field.append(path);
     tr.append(sideCell, field, node('td', row.before ?? '—', 'value old-value'), node('td', row.after ?? '—', 'value new-value'), node('td', { added: '追加', removed: '削除', changed: '変更' }[row.change], 'change-label'));
     $('diff-body').append(tr);
   }
-  $('visible-count').textContent = `${visible.length}件を表示 / 全${rows.length}件の差分`;
+  const rawCount = rows.reduce((count, row) => count + (row.elements?.length || 1), 0);
+  $('visible-count').textContent = `${visible.length}件を表示 / 全${rows.length}件の差分${rows.some(row => row.elements) ? `（配列を集約 · XML要素の差分${rawCount}件）` : ''}`;
   $('empty-result').hidden = !!visible.length;
   $('empty-result').textContent = rows.length ? '現在の絞り込み条件に一致する差分はありません。' : '選択したXMLデータに差分はありません。';
 }

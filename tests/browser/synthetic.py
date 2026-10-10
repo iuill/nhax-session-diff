@@ -20,6 +20,18 @@ for pi, label in enumerate(['Synthetic baseline', 'Synthetic update']):
         entry = ET.SubElement(root, 'Entry')
         ET.SubElement(entry, 'Key').text = 'synthetic_gain'
         ET.SubElement(entry, 'Value').text = str(pi + (ai * 10) + variant)
+        if '--arrays' in sys.argv:
+            for tag, key, values in [
+                ('byte', 'synthetic_bytes', [0, 10, 20, 255] if pi == 0 else [1, 11, 20, 254, 99]),
+                ('double', 'synthetic_vector', [1.5, 2.5, 3.5] if pi == 0 else [1.6, 2.5, 3.6]),
+            ]:
+                if tag == 'byte' and '--long-array' in sys.argv:
+                    values = [pi] * 205
+                entry = ET.SubElement(root, 'Entry')
+                ET.SubElement(entry, 'Key').text = key
+                value = ET.SubElement(entry, 'Value')
+                for number in values:
+                    ET.SubElement(value, tag).text = str(number)
         compressed = bz2.compress(ET.tostring(root, encoding='utf-16'))
         wrapper = f"<compression zip_size='{len(compressed)}' />".encode() + compressed + b'<compressionend/>'
         ET.SubElement(action, 'PrivateData').text = base64.b64encode(wrapper).decode()
