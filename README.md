@@ -3,13 +3,27 @@
 NHAXエクスポートに含まれる保存済みセッションを比較するツール。
 同じユーザーの前後のセッションに加え、別名で保存したユーザー間でも比較できるようにする。
 
-実サンプルで確認したNHAX形式から、ユーザー・セッション・アクションを一覧化し、
-フィッティングXMLの項目を比較するGo CLIと共通解析パッケージを実装済み。
-ブラウザ用WebAssemblyもビルド可能。画面の設定名・単位との対応付け、比較UI、Pages配信は未実装。
+[Webアプリを開く](https://iuill.github.io/nhax-session-diff/) · [CLIをダウンロード](https://github.com/iuill/nhax-session-diff/releases/latest)
 
-公開リポジトリにPages版とGo CLI版を置き、Goの共通解析をWebAssemblyでも使う。
+Web版ではNHAXを複数選び、ユーザー・セッションをまたいで左右のXML差分を比較する。
+ファイルはブラウザ内で解析し、サーバーへ送信しない。差分をJSONで保存できる。
+Go CLIとWebAssemblyは同じ解析を使う。設定名・単位との対応付けは未対応。
+
+CLIはReleaseのZIP（Windows）またはtar.gz（Linux）を展開して使う。
+Go・Python・Dockerのインストールは不要。CPUに合わせてamd64またはarm64を選ぶ。
+WindowsではPowerShellで次のように実行する。
+
+```powershell
+.\nhax-diff.exe --version
+.\nhax-diff.exe list --format text .\sample.nhax
+.\nhax-diff.exe diff --before p0/s0/a0 --after p1/s0/a0 --format text .\sample.nhax
+```
+
+Linux版は静的リンクした実行ファイルで、glibc/muslに依存しない。
+Linuxカーネル3.2以上、Windows 10以上を対象とする。
+[GoのOS要件](https://go.dev/wiki/MinimumRequirements)を参照。
 NHAXと変更メモの履歴は別の非公開リポジトリで管理する。
-Dev Containerの使い方とホスト認証共有は [docs/development.md](docs/development.md) を参照。
+開発環境は [docs/development.md](docs/development.md) を参照。
 
 ## サンプルの置き場所
 
@@ -44,7 +58,7 @@ bash scripts/build.sh
 CLIの標準出力はエージェント向けのJSONまたはコミットメッセージ作成用のテキスト。
 `dist/nhax-diff` がローカルCLI、`dist/browser/` がブラウザ向け解析エンジンになる。
 
-Go 1.26以上が必要。インストールして使う場合は次を実行する。
+ソースからビルドする場合はGo 1.26以上が必要。次の方法でもインストールできる。
 
 ```bash
 go install github.com/iuill/nhax-session-diff/cmd/nhax-diff@latest
@@ -69,12 +83,12 @@ python3 tools/session_diff.py local-data/sample.nhax --compare p0/s0/a6 p1/s0/a4
 未対応形式はエラーを表示する。Python調査版は出力先が既に存在すると上書きを拒否する。
 Go CLIは標準出力へ書くため、シェルで保存する場合は元のNHAXを出力先に指定しない。
 
-## 目指す使い方
+## Web版の使い方
 
 1. 1つ以上のエクスポートを読み込む。
 2. ファイル・ユーザー・日時・セッションで一覧を確認する。
 3. ユーザーをまたいで比較元と比較先を選ぶ。
-4. 変更された設定項目を旧値 → 新値で表示し、左右・プログラムで絞り込む。
+4. 変更された設定項目を旧値 → 新値で表示し、左右・検索文字列で絞り込む。
 
 未解読のデータは「未解読」と表示し、比較できた範囲を明示する。
 詳細な要件と調査手順は [docs/design.md](docs/design.md) を参照。

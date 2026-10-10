@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/iuill/nhax-session-diff/internal/nhax"
 )
+
+var version = "dev"
 
 func load(path string) (*nhax.Export, string, error) {
 	file, err := os.Open(path)
@@ -26,6 +29,14 @@ func load(path string) (*nhax.Export, string, error) {
 }
 
 func run(args []string, out io.Writer) error {
+	if len(args) == 1 && (args[0] == "--version" || args[0] == "version") {
+		fmt.Fprintln(out, "nhax-diff", version)
+		return nil
+	}
+	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Fprintln(out, "Usage: nhax-diff list [--format json|text] FILE\n       nhax-diff diff --before SELECTOR --after SELECTOR [--format json|text] FILE [AFTER_FILE]\n       nhax-diff --version")
+		return nil
+	}
 	if len(args) == 0 {
 		return fmt.Errorf("usage: nhax-diff list FILE | diff --before SELECTOR --after SELECTOR [--format json|text] FILE [AFTER_FILE]")
 	}
@@ -35,6 +46,9 @@ func run(args []string, out io.Writer) error {
 	after := flags.String("after", "", "Comparison target selector")
 	format := flags.String("format", "json", "Output format: json or text")
 	if err := flags.Parse(args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
 	files := flags.Args()

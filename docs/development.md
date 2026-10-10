@@ -14,7 +14,7 @@ bash scripts/build.sh
 ```
 
 Go 1.26、Node.js 24、Python 3、GitHub CLIを用意する。
-CLIの利用にはGoのみ必要。Node.jsはブラウザ用アダプターの検証、Pythonは調査版の検証に使う。
+ReleaseのCLI利用には開発ツールは不要。ソースからのCLIビルドにはGoが必要。Node.jsはブラウザ用アダプターの検証、Pythonは調査版の検証に使う。
 現在のDev Container定義はLinuxホスト上のCodex standaloneとファイル形式の認証キャッシュを共有する開発者向け設定。
 この方式を使わない場合は、ホスト共有用のmounts・remoteEnv・initializeCommandを外し、必要なツールをコンテナ内で用意する。
 Goをローカルに用意して開発する場合、Dev Containerと認証共有は不要。
@@ -51,3 +51,24 @@ Goのブラウザ向けビルドは `GOOS=js GOARCH=wasm` を使う。
 `nhaxCompare(beforeBytes, beforeSelector, afterBytes, afterSelector)` を公開し、
 JSON文字列の `{result: ...}` または `{error: ...}` を返す。
 CLIとの一致は `node scripts/check-wasm.cjs FILE BEFORE AFTER EXPECTED_JSON` で検証できる。
+
+## Web版と配布
+
+```bash
+bash scripts/build.sh
+npm ci
+npx playwright install --with-deps chromium
+npm run test:web
+python3 -m http.server 5173 --directory dist/browser
+```
+
+ブラウザテストには生成した架空データだけを使う。`dist/browser/` がPagesの配信対象。
+mainへのpushでテストとPagesデプロイが走る。PRではテストのみ実行する。
+
+```bash
+bash scripts/package-release.sh v0.1.0
+```
+
+Linux/Windowsのamd64/arm64をCGO無効でビルドし、アーカイブとSHA256SUMSを生成する。
+`v*` タグのpushでReleaseワークフローが走る。LinuxとWindowsのamd64実行を検証してから公開する。
+arm64はクロスビルドのみで、実機動作は未検証。

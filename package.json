@@ -1,0 +1,10 @@
+{
+  "name": "nhax-session-diff",
+  "private": true,
+  "scripts": {
+    "test:web": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}

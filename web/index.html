@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="NHAXの保存済みフィッティングをブラウザ内で比較するツール">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>NHAX session diff</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="./"><span class="brand-icon" aria-hidden="true">≋</span> NHAX <span>session diff</span></a><a href="https://github.com/iuill/nhax-session-diff/releases">CLIをダウンロード ↗</a></header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">SESSION COMPARISON</p><h1>何が変わったか、<br>並べて確認。</h1><p class="lead">保存したNHAXからフィッティングを選び、変更された項目を比較します。<br>別名のユーザーや、異なるファイル同士も比較できます。</p></div><div class="local-note"><span class="status-dot"></span><div><strong>ファイルはこのブラウザ内で解析</strong><p>サーバーへ送信せず、ページを閉じると読み込んだデータは破棄されます。</p></div></div></div>
+    <section class="panel import-panel" aria-labelledby="import-title">
+      <div class="section-heading"><h2 id="import-title"><span class="step">01</span> NHAXを読み込む</h2><span id="engine-status" role="status">解析エンジンを準備中…</span></div>
+      <label class="dropzone" id="dropzone"><input type="file" id="file-input" accept=".nhax" multiple disabled><span class="upload-icon" aria-hidden="true">↑</span><strong>NHAXファイルをドロップ</strong><span>またはクリックして選択 · 複数ファイル可 · 1ファイル32 MiBまで</span></label>
+      <div id="file-list" class="file-list"></div>
+      <div class="import-bottom"><p id="import-status" role="status">ファイルを選択すると、比較できる履歴が表示されます。</p><button id="clear" class="text-button" disabled>読み込みをクリア</button></div>
+      <div id="errors" role="alert" class="errors" hidden></div>
+    </section>
+    <section class="panel compare-panel" aria-labelledby="compare-title">
+      <div class="section-heading"><h2 id="compare-title"><span class="step">02</span> 比較する履歴を選ぶ</h2></div>
+      <div class="selection-grid"><div class="selection"><label for="before">比較元 <span>BEFORE</span></label><select id="before" disabled><option>NHAXを読み込んでください</option></select><p id="before-detail"></p></div><button id="swap" class="swap-button" aria-label="比較元と比較先を入れ替える" disabled>⇄</button><div class="selection"><label for="after">比較先 <span>AFTER</span></label><select id="after" disabled><option>NHAXを読み込んでください</option></select><p id="after-detail"></p></div></div>
+      <div class="compare-bottom"><p>ユーザーを自動で統合しません。比較する履歴を選択してください。</p><button id="compare" class="primary-button" disabled>差分を比較 <span aria-hidden="true">→</span></button></div>
+    </section>
+    <section class="panel results-panel" id="results" aria-labelledby="results-title" hidden>
+      <div class="section-heading"><div><p class="eyebrow">COMPARISON RESULT</p><h2 id="results-title">変更された項目</h2></div><button id="download" class="secondary-button">JSONを保存 ↓</button></div>
+      <p id="result-context" class="result-context"></p>
+      <p id="coverage" class="coverage"></p>
+      <div id="stats" class="stats"></div>
+      <div class="filters"><div class="side-filters" role="group" aria-label="左右で絞り込み"><button data-side="all" aria-pressed="true">すべて</button><button data-side="Left" aria-pressed="false">左</button><button data-side="Right" aria-pressed="false">右</button></div><label class="search"><span class="sr-only">項目名・値を検索</span><input type="search" id="search" placeholder="項目名・値を検索"></label><label class="metadata-toggle"><input type="checkbox" id="metadata"> 識別子・日時の差分も表示</label></div>
+      <p id="visible-count" class="visible-count" role="status"></p>
+      <div class="table-scroll"><table><thead><tr><th>左右</th><th>項目</th><th>比較元</th><th>比較先</th><th>変更</th></tr></thead><tbody id="diff-body"></tbody></table></div>
+      <p id="empty-result" class="empty-result" hidden></p>
+      <p class="result-note">XMLに保存された値を比較しています。画面上の名称・単位・プログラムとの対応は未検証です。差分ゼロは選択したデータの一致を示します。</p>
+    </section>
+    <div class="initial-result" id="initial-result"><span aria-hidden="true">↔</span><p>履歴を選んで比較すると、ここに差分が表示されます。</p></div>
+    <footer><span>NHAX session diff</span><p>現在は確認済みのNHAX形式に対応。未対応の形式はエラーを表示します。</p><a href="https://github.com/iuill/nhax-session-diff">ソースコード ↗</a></footer>
+  </main>
+</body>
+</html>

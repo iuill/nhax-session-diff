@@ -7,3 +7,6 @@ __pycache__/
 /dist/
 /nhax-diff
 /nhax-diff.exe
+node_modules/
+test-results/
+playwright-report/
