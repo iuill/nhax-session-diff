@@ -22,8 +22,25 @@
     </section>
     <section class="panel compare-panel" aria-labelledby="compare-title">
       <div class="section-heading"><h2 id="compare-title"><span class="step">02</span> 比較する履歴を選ぶ</h2></div>
-      <div class="selection-grid"><div class="selection"><label for="before">比較元 <span>BEFORE</span></label><select id="before" disabled><option>NHAXを読み込んでください</option></select><p id="before-detail"></p></div><button id="swap" class="swap-button" aria-label="比較元と比較先を入れ替える" disabled>⇄</button><div class="selection"><label for="after">比較先 <span>AFTER</span></label><select id="after" disabled><option>NHAXを読み込んでください</option></select><p id="after-detail"></p></div></div>
-      <div class="compare-bottom"><p>ユーザーを自動で統合しません。比較する履歴を選択してください。</p><button id="compare" class="primary-button" disabled>差分を比較 <span aria-hidden="true">→</span></button></div>
+      <div class="kind-filter selection"><label for="data-kind">データ種別</label><select id="data-kind" disabled><option value="FittingData">フィッティング</option></select><p id="kind-description">調整した設定を比較する場合は、フィッティングを選びます。</p></div>
+      <div class="selection-grid">
+        <div class="selection selection-card">
+          <h3>比較元 <span>BEFORE</span></h3>
+          <div id="before-file-field"><label for="before-file">ファイル</label><select id="before-file" disabled><option>NHAXを読み込んでください</option></select></div>
+          <label for="before-patient">ユーザー</label><select id="before-patient" disabled><option>NHAXを読み込んでください</option></select>
+          <label for="before">保存日時</label><select id="before" disabled><option>NHAXを読み込んでください</option></select>
+          <p id="before-detail"></p>
+        </div>
+        <button id="swap" class="swap-button" aria-label="比較元と比較先を入れ替える" disabled>⇄</button>
+        <div class="selection selection-card">
+          <h3>比較先 <span>AFTER</span></h3>
+          <div id="after-file-field"><label for="after-file">ファイル</label><select id="after-file" disabled><option>NHAXを読み込んでください</option></select></div>
+          <label for="after-patient">ユーザー</label><select id="after-patient" disabled><option>NHAXを読み込んでください</option></select>
+          <label for="after">保存日時</label><select id="after" disabled><option>NHAXを読み込んでください</option></select>
+          <p id="after-detail"></p>
+        </div>
+      </div>
+      <div class="compare-bottom"><div><p>同じユーザーの前後も、別名のユーザー同士も比較できます。</p><p id="selection-status" role="status">ファイルを読み込んで、比較する履歴を選択してください。</p></div><button id="compare" class="primary-button" disabled>差分を比較 <span aria-hidden="true">→</span></button></div>
     </section>
     <section class="panel results-panel" id="results" aria-labelledby="results-title" hidden>
       <div class="section-heading"><div><p class="eyebrow">COMPARISON RESULT</p><h2 id="results-title">変更された項目</h2></div><button id="download" class="secondary-button">JSONを保存 ↓</button></div>

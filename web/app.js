@@ -54,11 +54,17 @@ const patientName = patient => {
 };
 const sideLabel = value => ({ Left: '左', Right: '右' }[value] || value || '共通');
 const kindLabel = value => ({ FittingData: 'フィッティング', SelectionData: '選択情報', ClientProfile: 'プロファイル', InstrumentLoggingData: '使用ログ' }[value] || value);
+const kindDescription = value => ({
+  FittingData: '調整した設定などのデータ。通常の設定比較はこちら。',
+  ClientProfile: '聴力測定・フィッティング方針などのプロフィール情報。',
+  InstrumentLoggingData: '機器から取得された使用ログのデータ。',
+  SelectionData: '機器や音響構成などの選択情報。画面の選択状態ではありません。',
+}[value] || 'このXMLデータ種別の履歴を比較します。');
 
 function setBusy(value) {
   busy = value;
   $('file-input').disabled = value || !engineReady;
-  for (const id of ['before', 'after', 'swap', 'compare']) $(id).disabled = value || !groups.length || !engineReady;
+  for (const id of ['data-kind', 'before-file', 'before-patient', 'before', 'after-file', 'after-patient', 'after', 'swap', 'compare']) $(id).disabled = value || !groups.length || !engineReady;
   $('clear').disabled = value || !files.length;
 }
 
@@ -69,7 +75,6 @@ function invalidateResult() {
 }
 
 function buildGroups() {
-  const oldBefore = $('before').value, oldAfter = $('after').value;
   groups = [];
   for (const file of files) {
     for (const patient of file.parsed.patients) {
@@ -84,33 +89,78 @@ function buildGroups() {
         }
         for (const group of grouped.values()) {
           group.id = `${file.sha256}:${patient.index}:${sessionIndex}:${group.time}:${group.root}`;
-          group.label = `${patientName(patient)} · ${group.time.replace('T', ' ')} · ${kindLabel(group.root)} · ${file.name}`;
+          group.label = `${patientName(patient)} · ${group.time.replace('T', ' ')}`;
           groups.push(group);
         }
       }
     }
   }
   groups.sort((a, b) => a.root === 'FittingData' && b.root !== 'FittingData' ? -1 : b.root === 'FittingData' && a.root !== 'FittingData' ? 1 : a.time.localeCompare(b.time) || a.label.localeCompare(b.label));
-  for (const id of ['before', 'after']) {
-    $(id).replaceChildren();
-    if (!groups.length) $(id).append(node('option', files.length ? '比較可能なデータがありません' : 'NHAXを読み込んでください'));
-    for (const group of groups) {
-      const option = node('option', group.label); option.value = group.id; $(id).append(option);
-    }
+  const oldKind = $('data-kind').value;
+  const kinds = [...new Set(groups.map(g => g.root))];
+  $('data-kind').replaceChildren();
+  for (const kind of kinds) {
+    const option = node('option', `${kindLabel(kind)} (${groups.filter(g => g.root === kind).length}件)`);
+    option.value = kind; $('data-kind').append(option);
   }
-  const fitting = groups.filter(g => g.root === 'FittingData');
-  $('before').value = groups.some(g => g.id === oldBefore) ? oldBefore : groups[0]?.id || '';
-  $('after').value = groups.some(g => g.id === oldAfter) ? oldAfter : (fitting.at(-1) || groups.at(-1))?.id || '';
-  updateDetails();
+  if (!kinds.length) {
+    const option = node('option', 'フィッティング'); option.value = 'FittingData'; $('data-kind').append(option);
+  }
+  $('data-kind').value = kinds.includes(oldKind) ? oldKind : kinds.includes('FittingData') ? 'FittingData' : kinds[0] || 'FittingData';
+  renderSelectors();
   setBusy(false);
+}
+
+function replaceOptions(id, options, chosen) {
+  $(id).replaceChildren();
+  for (const [value, label] of options) {
+    const option = node('option', label); option.value = String(value); $(id).append(option);
+  }
+  if (!options.length) $(id).append(node('option', files.length ? '比較可能なデータがありません' : 'NHAXを読み込んでください'));
+  if (chosen !== undefined) $(id).value = String(chosen);
+}
+
+function renderSide(id, hint = {}) {
+  const visible = groups.filter(g => g.root === $('data-kind').value);
+  const edge = list => id === 'before' ? list[0] : list.at(-1);
+  const requested = visible.find(g => g.id === hint.groupId);
+  const availableFiles = files.filter(file => visible.some(g => g.file === file));
+  const file = requested?.file || availableFiles.find(f => f.sha256 === hint.fileId) || edge(visible)?.file;
+  replaceOptions(id + '-file', availableFiles.map(f => [f.sha256, f.name]), file?.sha256);
+  $(id + '-file-field').hidden = files.length === 1;
+  const inFile = visible.filter(g => g.file === file);
+  const patients = [...new Map(inFile.map(g => [g.patient.index, g.patient])).values()];
+  const patient = requested?.patient || patients.find(p => String(p.index) === String(hint.patientIndex)) || edge(inFile)?.patient;
+  replaceOptions(id + '-patient', patients.map(p => {
+    const duplicateName = patients.filter(other => patientName(other) === patientName(p)).length > 1;
+    return [p.index, `${patientName(p)}${duplicateName ? `（ユーザー ${p.index + 1}）` : ''} · ${inFile.filter(g => g.patient === p).length}件`];
+  }), patient?.index);
+  const histories = inFile.filter(g => g.patient === patient);
+  const chosen = requested || edge(histories);
+  replaceOptions(id, [...histories].reverse().map(g => {
+    const duplicateTime = histories.filter(other => other.time === g.time).length > 1;
+    return [g.id, `${g.time.replace('T', ' ') || '日時不明'}${duplicateTime ? ` · セッション ${g.sessionIndex + 1}` : ''}`];
+  }), chosen?.id);
+}
+
+function renderSelectors() {
+  for (const id of ['before', 'after']) renderSide(id, {
+    groupId: $(id).value, fileId: $(id + '-file').value, patientIndex: $(id + '-patient').value,
+  });
+  $('kind-description').textContent = kindDescription($('data-kind').value);
+  updateDetails();
 }
 
 function selected(id) { return groups.find(g => g.id === $(id).value); }
 function updateDetails() {
   for (const id of ['before', 'after']) {
     const group = selected(id);
-    $(id + '-detail').textContent = group ? `${group.actions.length}アクション · ${[...new Set(group.actions.map(a => sideLabel(a.side)))].join(' / ')} · セッション ${group.sessionIndex + 1}` : '';
+    $(id + '-detail').textContent = group ? `${group.actions.length}アクション · ${[...new Set(group.actions.map(a => sideLabel(a.side)))].join(' / ')}` : '';
   }
+  const before = selected('before'), after = selected('after');
+  $('selection-status').textContent = before && after
+    ? before.id === after.id ? '同じ履歴を選択しています。' : `${patientName(before.patient)} → ${patientName(after.patient)}`
+    : 'ファイルを読み込んで、比較する履歴を選択してください。';
 }
 
 async function importFiles(incoming) {
@@ -212,12 +262,21 @@ function renderRows() {
 }
 
 $('file-input').addEventListener('change', event => importFiles(event.target.files));
+$('data-kind').addEventListener('change', () => { renderSelectors(); invalidateResult(); showErrors([]); });
 for (const name of ['dragenter', 'dragover']) $('dropzone').addEventListener(name, event => { event.preventDefault(); if (!busy) $('dropzone').classList.add('dragging'); });
 for (const name of ['dragleave', 'drop']) $('dropzone').addEventListener(name, event => { event.preventDefault(); $('dropzone').classList.remove('dragging'); });
 $('dropzone').addEventListener('drop', event => importFiles(event.dataTransfer.files));
 $('clear').addEventListener('click', () => { files.length = 0; renderFiles(); buildGroups(); invalidateResult(); showErrors([]); $('import-status').textContent = '読み込みをクリアしました。'; });
 for (const id of ['before', 'after']) $(id).addEventListener('change', () => { updateDetails(); invalidateResult(); });
-$('swap').addEventListener('click', () => { const value = $('before').value; $('before').value = $('after').value; $('after').value = value; updateDetails(); invalidateResult(); });
+for (const id of ['before', 'after']) {
+  $(id + '-file').addEventListener('change', () => { renderSide(id, { fileId: $(id + '-file').value }); updateDetails(); invalidateResult(); });
+  $(id + '-patient').addEventListener('change', () => { renderSide(id, { fileId: $(id + '-file').value, patientIndex: $(id + '-patient').value }); updateDetails(); invalidateResult(); });
+}
+$('swap').addEventListener('click', () => {
+  const before = $('before').value, after = $('after').value;
+  renderSide('before', { groupId: after }); renderSide('after', { groupId: before });
+  updateDetails(); invalidateResult();
+});
 $('compare').addEventListener('click', compare);
 $('search').addEventListener('input', renderRows);
 $('metadata').addEventListener('change', renderRows);

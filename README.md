@@ -6,6 +6,8 @@ NHAXエクスポートに含まれる保存済みセッションを比較する�
 [Webアプリを開く](https://iuill.github.io/nhax-session-diff/) · [CLIをダウンロード](https://github.com/iuill/nhax-session-diff/releases/latest)
 
 Web版ではNHAXを複数選び、ユーザー・セッションをまたいで左右のXML差分を比較する。
+データ種別は初期表示でフィッティングに絞り、比較元・比較先それぞれのファイル・ユーザー・保存日時を選ぶ。
+プロファイル・使用ログ・選択情報はデータ種別を切り替えて比較できる。
 ファイルはブラウザ内で解析し、サーバーへ送信しない。差分をJSONで保存できる。
 Go CLIとWebAssemblyは同じ解析を使う。設定名・単位との対応付けは未対応。
 
