@@ -27,6 +27,7 @@ Web版: https://iuill.github.io/nhax-session-diff/
 Windowsは展開した `nhax-diff.exe` をPowerShell等から実行します。
 Linuxは展開した `nhax-diff` を `./nhax-diff` として実行します。
 チェックサムは `SHA256SUMS` に記載しています。
+各CLIアーカイブにはGoのライセンス表記 `Go-LICENSE.txt` を同梱しています。
 
 Linux版は `CGO_ENABLED=0` でビルドした静的リンクのELF実行ファイルです。
 glibc / muslに依存せず、同じCPUアーキテクチャのディストリビューションで利用できます。

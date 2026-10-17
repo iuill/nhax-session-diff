@@ -13,6 +13,7 @@ for target_os in linux windows; do
         package_name="nhax-diff_${release_version}_${target_os}_${target_arch}"
         package_dir="dist/packages/${package_name}"
         mkdir -p "$package_dir"
+        cp "$(go env GOROOT)/LICENSE" "$package_dir/Go-LICENSE.txt"
         binary_name=nhax-diff
         [[ "$target_os" != windows ]] || binary_name=nhax-diff.exe
         CGO_ENABLED=0 GOOS="$target_os" GOARCH="$target_arch" GOAMD64=v1 \
@@ -42,7 +43,7 @@ with zipfile.ZipFile(sys.argv[2], "w", zipfile.ZIP_DEFLATED) as archive:
         archive.write(path, path.name)
 PY
         else
-            tar -czf "$release_dir/$package_name.tar.gz" -C "$package_dir" "$binary_name" USAGE.txt
+            tar -czf "$release_dir/$package_name.tar.gz" -C "$package_dir" "$binary_name" USAGE.txt Go-LICENSE.txt
         fi
     done
 done
