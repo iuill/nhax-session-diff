@@ -1,0 +1,59 @@
+name: Desktop
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.5'
+          cache-dependency-path: desktop/go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Test native backend
+        working-directory: desktop
+        run: go test ./...
+      - name: Vet native backend
+        working-directory: desktop
+        run: go vet ./...
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
+      - name: Build Windows GUI
+        working-directory: desktop
+        run: wails build -platform windows/amd64 -webview2 embed
+      - run: npm ci
+      - name: Verify native GUI comparison and journal persistence
+        run: node scripts/check-desktop.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-test-screenshots
+          path: dist/desktop-test/
+          if-no-files-found: ignore
+      - name: Collect executable and notices
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/desktop | Out-Null
+          Copy-Item desktop/build/bin/nhax-desktop.exe dist/desktop/nhax-desktop_windows_amd64.exe
+          Push-Location desktop
+          go mod download all
+          if ($LASTEXITCODE -ne 0) { throw 'Module download failed' }
+          Pop-Location
+          go run ./tools/desktop-notices desktop dist/desktop/THIRD-PARTY-NOTICES-desktop.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Notice generation failed' }
+          $hash = (Get-FileHash dist/desktop/nhax-desktop_windows_amd64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  nhax-desktop_windows_amd64.exe" | Set-Content -Encoding ascii dist/desktop/SHA256SUMS-desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-amd64
+          path: dist/desktop/*

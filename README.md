@@ -3,7 +3,29 @@
 NHAXエクスポートに含まれる保存済みセッションを比較するツール。
 同じユーザーの前後のセッションに加え、別名で保存したユーザー間でも比較できるようにする。
 
-[Webアプリを開く](https://iuill.github.io/nhax-session-diff/) · [CLIをダウンロード](https://github.com/iuill/nhax-session-diff/releases/latest)
+[Webアプリを開く](https://iuill.github.io/nhax-session-diff/) · [GUI・CLIをダウンロード](https://github.com/iuill/nhax-session-diff/releases/latest)
+
+## Windows GUI版
+
+Releaseの `nhax-desktop_windows_amd64.exe` をダウンロードし、ダブルクリックして起動する。
+Windows 10/11のIntel・AMD 64bit向け。Go・Python・Dockerは不要。
+WebView2 Runtimeが必要で、未導入の場合は初回起動時にインストールを案内する。
+GUI版はNHAXの解析・比較をGoで実行し、ファイル選択とJSON保存にOSのダイアログを使う。
+データを外部へ送信しない。
+
+「記録する」から、設定・変更の意図と、使ってからの気づきを記録できる。
+最初に別の非公開履歴リポジトリなどの保存先フォルダーを選ぶ。
+記録は `journal/<日時>-<識別子>.json` として1件ずつ保存され、アプリを開き直しても読める。
+フォルダーの場所だけをOSのユーザー設定領域に記憶する。
+選択中の履歴のファイル名・SHA-256・ユーザー・日時・アクション識別子を添付できる。
+NHAXを読み込まず、気づきだけを記録することも可能。
+Gitへのcommit・pushは別途行う。アプリはNHAXを書き換えない。
+
+アプリのソースとRelease配布物は公開リポジトリ、NHAXと `journal/` は別の非公開リポジトリで管理する。
+ダウンロードしたexeは履歴リポジトリのGit管理対象にしない。
+GUIの第三者ライセンスはRelease添付の `THIRD-PARTY-NOTICES-desktop.txt` を参照。
+
+## Web版・CLI版
 
 Web版ではNHAXを複数選び、ユーザー・セッションをまたいで左右のXML差分を比較する。
 データ種別は初期表示でフィッティングに絞り、比較元・比較先それぞれのファイル・ユーザー・保存日時を選ぶ。

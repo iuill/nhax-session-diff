@@ -1,8 +1,17 @@
-NHAXエクスポートをローカルで解析するCLIです。Go・Python・Dockerのインストールは不要です。
+NHAXエクスポートをローカルで解析・比較するGUIとCLIです。Go・Python・Dockerのインストールは不要です。
 
 - 保存済みユーザー・セッション・アクションの一覧表示
 - 同一ファイル内、別ファイル、別名のユーザー間でのXML項目比較
 - JSON・テキスト出力
+- Windows GUIで比較、設定・変更の意図、使用後の気づきを記録
+
+Windowsの画面付きアプリは **`nhax-desktop_windows_amd64.exe`** をダウンロードしてダブルクリックで起動します。
+WebView2 Runtimeが必要です。未導入の場合は初回起動時にインストールを案内します。
+記録の保存先には、NHAXを管理する別の非公開履歴リポジトリなどを選択します。
+記録は `journal/` にJSONで保存され、選択中の履歴も添付できます。Gitへのcommit・pushは別途行ってください。
+exeは履歴リポジトリのGit管理対象にする必要はありません。
+`SHA256SUMS-desktop` と `THIRD-PARTY-NOTICES-desktop.txt` も添付しています。
+GUI版はWindows amd64向けです。以下のアーカイブはCLI版です。
 
 Web版: https://iuill.github.io/nhax-session-diff/
 

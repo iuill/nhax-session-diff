@@ -36,6 +36,7 @@ Goをローカルに用意して開発する場合、Dev Containerと認証共�
 ## アプリの構成方針
 
 - 公開の `nhax-session-diff` は、Goの共通解析パッケージ、CLI、PagesのWeb画面を持つ。
+- `desktop/` はWails v2.15.0のGUI版。独立したGoモジュールとして、CLI/WASMの依存関係からGUIライブラリを分離する。
 - CLIとWebAssemblyから同じGoパッケージを使う。UIやファイル操作は共通解析から分離する。
 - NHAXはブラウザ内またはCLIの実行環境で解析する。Pagesへ送信するAPIは設けない。
 - Python実装は調査用の参照として保持し、Go実装の移行検証に使う。
@@ -72,3 +73,36 @@ bash scripts/package-release.sh v0.1.0
 Linux/Windowsのamd64/arm64をCGO無効でビルドし、アーカイブとSHA256SUMSを生成する。
 `v*` タグのpushでReleaseワークフローが走る。LinuxとWindowsのamd64実行を検証してから公開する。
 arm64はクロスビルドのみで、実機動作は未検証。
+
+## GUI版の開発・配布
+
+WindowsのGo環境で次を実行する。
+
+```powershell
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
+cd desktop
+go test ./...
+go vet ./...
+wails build -platform windows/amd64 -webview2 embed
+```
+
+`desktop/build/bin/nhax-desktop.exe` が生成される。
+`wails dev` で開発時のウィンドウを起動できる。
+LinuxでGUIを起動する場合はGTK3・WebKitGTKの開発ライブラリが追加で必要。
+LinuxコンテナからのWindows向けクロスビルドは同じbuildコマンドで行える。
+現在のRelease対象はWindows amd64のみ。
+[Wails公式の開発要件](https://v2.wails.io/docs/gettingstarted/installation/)。
+
+`tools/desktop-assets` が `web/` の画面をコピーし、Wails用の文言・CSPに調整する。
+デスクトップでは `web/engine.js` がWails経由でGoを呼ぶためWASMを同梱しない。
+`desktop/main.go` の `desktop || bindings` タグは、GUI本体のビルドとWailsのバインディング生成に使う。
+通常のGoテストではGUIを起動せず、解析・記録の永続化を検証する。
+
+Desktopワークフローはpush・PRでWindowsビルドと実際のWebView2を使う比較・記録保存テストを行う。
+テスト時のみ `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` でCDPを有効にする。
+[PlaywrightのWebView2テスト手順](https://playwright.dev/docs/webview2)に従う。
+ブラウザテストはIPCを模擬し、同じ画面の操作・保存失敗時の入力保持も確認する。
+すべて架空データで実行する。
+
+`v*` タグのReleaseワークフローはDesktopワークフローも呼び出し、テストが通ったexe・チェックサム・第三者ライセンスをCLIと同じReleaseに添付する。
+通常のpushではActionsの `desktop-windows-amd64` Artifactから入手できる。
