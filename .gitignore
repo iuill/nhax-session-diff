@@ -10,8 +10,3 @@ __pycache__/
 node_modules/
 test-results/
 playwright-report/
-/desktop/assets/*
-!/desktop/assets/.gitkeep
-/desktop/build/
-/desktop/wailsjs/
-/journal/

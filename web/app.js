@@ -1,17 +1,15 @@
 import { groupDifferences } from './differences.js';
-import { createEngine, desktop, selectFiles } from './engine.js';
-import { setupJournal } from './journal.js';
 
 const $ = id => document.getElementById(id);
 const files = [];
 let groups = [], report = null, rows = [], side = 'all', sequence = 0, busy = false, engineReady = false;
 const pending = new Map();
-const worker = createEngine();
+const worker = new Worker('worker.js');
 
 worker.onmessage = ({ data }) => {
   if (data.kind === 'ready') {
     engineReady = true;
-    $('engine-status').textContent = desktop ? 'このPC内で解析 · 準備完了' : 'ブラウザ内で解析 · 準備完了';
+    $('engine-status').textContent = 'ブラウザ内で解析 · 準備完了';
     $('file-input').disabled = false;
     return;
   }
@@ -165,7 +163,6 @@ function updateDetails() {
   $('selection-status').textContent = before && after
     ? before.id === after.id ? '同じ履歴を選択しています。' : `${patientName(before.patient)} → ${patientName(after.patient)}`
     : 'ファイルを読み込んで、比較する履歴を選択してください。';
-  document.dispatchEvent(new Event('nhax-selection-change'));
 }
 
 async function importFiles(incoming) {
@@ -288,26 +285,6 @@ function renderRows() {
 }
 
 $('file-input').addEventListener('change', event => importFiles(event.target.files));
-if (desktop) {
-  // Open a native dialog instead of the WebView's HTML file input.
-  $('dropzone').addEventListener('click', async event => {
-    event.preventDefault();
-    if (busy || !engineReady) return;
-    setBusy(true);
-    try {
-      const selected = await selectFiles();
-      setBusy(false);
-      if (selected.length) await importFiles(selected);
-    } catch (error) { showErrors([String(error)]); }
-    finally { setBusy(false); }
-  });
-  document.addEventListener('click', event => {
-    const link = event.target.closest('a');
-    if (!link) return;
-    event.preventDefault();
-    if (link.getAttribute('href').startsWith('https://')) window.runtime.BrowserOpenURL(link.href);
-  });
-}
 $('data-kind').addEventListener('change', () => { renderSelectors(); invalidateResult(); showErrors([]); });
 for (const name of ['dragenter', 'dragover']) $('dropzone').addEventListener(name, event => { event.preventDefault(); if (!busy) $('dropzone').classList.add('dragging'); });
 for (const name of ['dragleave', 'drop']) $('dropzone').addEventListener(name, event => { event.preventDefault(); $('dropzone').classList.remove('dragging'); });
@@ -327,19 +304,9 @@ $('compare').addEventListener('click', compare);
 $('search').addEventListener('input', renderRows);
 $('metadata').addEventListener('change', renderRows);
 for (const button of document.querySelectorAll('[data-side]')) button.addEventListener('click', () => { side = button.dataset.side; for (const other of document.querySelectorAll('[data-side]')) other.setAttribute('aria-pressed', String(other === button)); renderRows(); });
-$('download').addEventListener('click', async () => {
+$('download').addEventListener('click', () => {
   if (!report) return;
-  if (desktop) {
-    try { await desktop.SaveReport(JSON.stringify(report, null, 2) + '\n'); }
-    catch (error) { showErrors([String(error)]); }
-    return;
-  }
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2) + '\n'], { type: 'application/json' }));
   const link = node('a'); link.href = url; link.download = 'nhax-comparison.json'; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
-
-setupJournal(() => [...new Set([selected('before'), selected('after')].filter(Boolean))].map(group => ({
-  file: group.file.name, sha256: group.file.sha256, patient: patientName(group.patient),
-  time: group.time, kind: group.root, selectors: group.actions.map(action => action.selector),
-})));

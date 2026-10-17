@@ -5,8 +5,6 @@ on:
 permissions:
   contents: read
 jobs:
-  desktop:
-    uses: ./.github/workflows/desktop.yml
   build:
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +61,7 @@ jobs:
           $report = & .\cli\nhax-diff.exe diff --before p0/s0/a0 --after p1/s0/a0 $sample.FullName | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $report.differences.Count -ne 2) { throw 'Windows comparison failed' }
   publish:
-    needs: [build, verify-windows, desktop]
+    needs: [build, verify-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,12 +71,8 @@ jobs:
         with:
           name: release-packages
           path: packages
-      - uses: actions/download-artifact@v4
-        with:
-          name: desktop-windows-amd64
-          path: desktop-packages
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_VERSION" packages/releases/"$RELEASE_VERSION"/* desktop-packages/* --verify-tag --title "$RELEASE_VERSION" --notes-file docs/release-notes.md
+        run: gh release create "$RELEASE_VERSION" packages/releases/"$RELEASE_VERSION"/* --verify-tag --title "$RELEASE_VERSION" --notes-file docs/release-notes.md
